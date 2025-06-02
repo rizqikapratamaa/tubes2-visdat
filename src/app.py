@@ -1,63 +1,15 @@
 import streamlit as st
 import pandas as pd
-from components import layout
+from components import layout, map_plotter, line_chart_plotter, table_plotter
 import config
 import styles
 import data_loader
-import map_plotter
-import line_chart_plotter
-import table_plotter
 
 def main():
     st.set_page_config(layout=config.LAYOUT, page_title=config.PAGE_TITLE)
     styles.load_global_css()
 
-    st.markdown(
-        """
-        <div style='
-            padding-bottom: 20px;
-            border-bottom: 2px solid #2A4066;
-            position: relative;
-            overflow: hidden;
-        '>
-            <div style='
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 50px;
-            '></div>
-            <h1 style='
-                text-align: center;
-                color: #FFFFFF;
-                font-size: 48px;
-                font-weight: bold;
-                margin: 0;
-                padding-top: 20px;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            '>
-                China versus America on global trade
-            </h1>
-            <p style='
-                text-align: center;
-                color: #E0E7FF;
-                font-size: 18px;
-                margin: 10px 0;
-            '>
-                Dive into the rivalry between the United States and China as they compete for global trade supremacy.
-            </p>
-            <p style='
-                text-align: center;
-                color: #A0BFE0;
-                font-size: 14px;
-                margin: 5px 0;
-            '>
-                This interactive trade map displays a time series capturing changing patterns of global trade with the world’s two largest economies, the United States and China, from 2001 to 2024.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    layout.display_title()
 
     if 'active_trade_flow_display_map' not in st.session_state:
         st.session_state.active_trade_flow_display_map = config.DEFAULT_TRADE_FLOW_DISPLAY

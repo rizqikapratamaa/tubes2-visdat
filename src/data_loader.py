@@ -91,7 +91,7 @@ def load_trade_data():
 
     name_mapping = {
         'Falkland Islands (Malvinas)': 'Falkland Islands', 'Equatorial Guinea, Republic of': 'Equatorial Guinea',
-        'Brunei Darussalam': 'Brunei', 'Congo, Democratic Republic of the': 'Democratic Republic of the Congo',
+        'Brunei Darussalam': 'Brunei', 'Congo, Democratic Republic of the': 'Democratic Republic of the Congo', 'Congo, Republic of': 'Republic of the Congo',
         'Congo, Rep.': 'Republic of Congo', "Côte d'Ivoire": "Ivory Coast",
         'Iran, Islamic Rep. of': 'Iran', "Korea, Democratic People's Republic of": 'North Korea',
         'Korea, Republic of': 'South Korea', 'Lao PDR': 'Laos', 'Russian Federation': 'Russia',
@@ -111,7 +111,7 @@ def load_trade_data():
         'Netherlands, The' : 'Netherlands', 'Lithuania, Republic of': 'Lithuania', 
         'Latvia, Republic of' : 'Latvia', 'Türkiye, Republic of' : 'Turkey', 
         'Moldova, Republic of' : 'Moldova', 'North Macedonia, Republic of': 'North Macedonia', 
-        'Kosovo, Republic of' : 'Kosovo', 'Serbia, Republic of': 'Serbia',
+        'Kosovo, Republic of' : 'Kosovo', 'Serbia, Republic of': 'Republic of Serbia',
         'Slovenia, Republic of': 'Slovenia', 'Croatia, Republic of' : 'Croatia', 
         'Timor-Leste, Democratic Republic of' : 'Timor-Leste',
         'Taiwan Province of China' : 'Taiwan',
@@ -136,7 +136,10 @@ def load_trade_data():
         'San Marino, Republic of': 'San Marino',
         'São Tomé and Príncipe, Democratic Republic of': 'Sao Tome and Principe',
         'Venezuela, República Bolivariana de': 'Venezuela',
-        'West Bank and Gaza': 'West Bank'
+        'West Bank and Gaza': 'West Bank',
+        'Iran, Islamic Republic of' : 'Iran',
+        'Yemen, Republic of' : 'Yemen',
+        'Tanzania, United Republic of': 'United Republic of Tanzania'
     }
     df_processed_dominance['Partner'] = df_processed_dominance['Partner_Raw'].replace(name_mapping)
 

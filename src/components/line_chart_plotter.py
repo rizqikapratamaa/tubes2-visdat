@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import config
-from map_plotter import format_trade_value
+from data_loader import format_trade_value
 
 @st.cache_data
 def load_line_chart_data():

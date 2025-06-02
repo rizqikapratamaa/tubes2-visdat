@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import config
-from map_plotter import format_trade_value
+from data_loader import format_trade_value
 
 def generate_trade_table_data_and_pies(df_filtered_table):
     if df_filtered_table.empty:

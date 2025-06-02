@@ -7,15 +7,11 @@ import config
 def format_trade_value(value):
     if pd.isna(value) or value == 0:
         return "$0"
-    if abs(value) >= 1_000_000_000_000: # Trillion
-        return f"${value / 1_000_000_000_000:.2f}T"
-    if abs(value) >= 1_000_000_000: # Billion
-        return f"${value / 1_000_000_000:.2f}B"
-    if abs(value) >= 1_000_000: # Million
-        return f"${value / 1_000_000:.2f}M"
-    if abs(value) >= 1_000: # Thousand
-        return f"${value / 1_000:.2f}K"
-    return f"${value:.2f}"
+    if abs(value) >= 1_000_000:
+        return f"${value / 1_000_000:.2f}T"
+    if abs(value) >= 1_000:
+        return f"${value / 1_000:.2f}B"
+    return f"${value:.2f}M"
 
 def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data, min_year, max_year, current_selected_year, initial_active_flow_key="Total", selected_continent="World"):
 

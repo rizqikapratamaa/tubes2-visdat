@@ -1,36 +1,43 @@
 import streamlit as st
 import pandas as pd
-import config 
+import config
 import styles
 import data_loader
 import map_plotter
-import line_chart_plotter
+import line_chart_plotter # Pastikan diimpor
 import table_plotter
 
 def main():
     st.set_page_config(layout=config.LAYOUT, page_title=config.PAGE_TITLE)
     styles.load_global_css()
 
+    # --- Session State untuk Map ---
     if 'active_trade_flow_display_map' not in st.session_state:
         st.session_state.active_trade_flow_display_map = config.DEFAULT_TRADE_FLOW_DISPLAY
-    
-    initial_years_for_map_default = config.YEARS_RANGE 
+
+    initial_years_for_map_default = config.YEARS_RANGE
     temp_df_dom, temp_avail_years = data_loader.load_trade_data()
     if temp_avail_years:
         initial_years_for_map_default = temp_avail_years
-    
+
     if 'active_year_map' not in st.session_state:
         st.session_state.active_year_map = max(initial_years_for_map_default) if initial_years_for_map_default else config.YEARS_RANGE[-1]
-    
+
+    # --- Session State untuk Tabel ---
     if 'selected_year_table' not in st.session_state:
         st.session_state.selected_year_table = config.DEFAULT_TABLE_YEAR
     if 'selected_continent_table' not in st.session_state:
-        st.session_state.selected_continent_table = config.DEFAULT_TABLE_CONTINENT 
+        st.session_state.selected_continent_table = config.DEFAULT_TABLE_CONTINENT
     if 'selected_trade_flow_table' not in st.session_state:
         st.session_state.selected_trade_flow_table = config.DEFAULT_TRADE_FLOW_DISPLAY
     if 'sort_order_table' not in st.session_state:
         st.session_state.sort_order_table = config.DEFAULT_TABLE_SORT_ORDER
 
+    # --- Session State untuk Line Chart (BARU) ---
+    if 'selected_view_line_chart' not in st.session_state:
+        st.session_state.selected_view_line_chart = "Exports" # Default view
+
+    # --- Muat Data ---
     df_dominance_all, available_years_all = data_loader.load_trade_data()
     if df_dominance_all.empty or not available_years_all:
         st.error("Tidak dapat memuat data perdagangan utama. Aplikasi tidak dapat berjalan.")
@@ -39,7 +46,11 @@ def main():
     if df_table_prepared.empty and not df_dominance_all.empty:
         st.error("Gagal menyiapkan data untuk tabel.")
 
+    # --- Judul Utama ---
     st.markdown("### Global Trade Dominance: US vs China", unsafe_allow_html=True)
+
+    # --- Peta Choropleth ---
+    # (Kode peta Anda tetap sama)
     geojson_data = data_loader.get_geojson_data()
     if not df_dominance_all.empty and geojson_data and available_years_all:
         initial_active_flow_key_map = config.TRADE_FLOW_MAP.get(
@@ -64,16 +75,36 @@ def main():
 
     st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
+    # --- Line Chart Section ---
     st.markdown("### US vs China: Export & Import Trends", unsafe_allow_html=True)
+
+    # --- Filter untuk Line Chart (BARU) ---
+    col_lc_filter_container, _ = st.columns([0.1, 0.9]) # Kolom pertama lebih sempit
+
+    with col_lc_filter_container:
+        line_chart_view_options = ["Exports", "Imports"]
+        selected_view_lc_val = st.selectbox(
+            "Tampilkan Tren:",
+            options=line_chart_view_options,
+            index=line_chart_view_options.index(st.session_state.selected_view_line_chart),
+            key="line_chart_view_filter"
+        )
+        st.session_state.selected_view_line_chart = selected_view_lc_val
+
     df_line_chart_data = line_chart_plotter.load_line_chart_data()
     if not df_line_chart_data.empty:
-        fig_line_chart = line_chart_plotter.create_trade_trend_line_chart(df_line_chart_data)
+        fig_line_chart = line_chart_plotter.create_trade_trend_line_chart(
+            df_line_chart_data,
+            selected_view=st.session_state.selected_view_line_chart
+        )
         st.plotly_chart(fig_line_chart, use_container_width=True, config=config.PLOTLY_CONFIG)
     else:
         st.warning("Data untuk line chart tren perdagangan tidak dapat dimuat.")
 
     st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
+    # --- Table Analysis Section ---
+    # (Kode tabel Anda tetap sama)
     st.markdown(f"### Top {config.TOP_N_COUNTRIES} Trading Partners Analysis", unsafe_allow_html=True)
 
     if df_table_prepared.empty:
@@ -97,7 +128,7 @@ def main():
         with col_filter4:
             selected_sort_order_table = st.selectbox("Urutkan (Total Perdagangan):", options=config.SORT_ORDER_OPTIONS, index=config.SORT_ORDER_OPTIONS.index(st.session_state.sort_order_table), key="table_sort_order_filter")
             st.session_state.sort_order_table = selected_sort_order_table
-        
+
         st.markdown("<div style='margin-bottom: 1.0rem;'></div>", unsafe_allow_html=True)
 
         current_year = st.session_state.selected_year_table
@@ -108,7 +139,7 @@ def main():
         df_year_filtered = df_table_prepared[df_table_prepared['Year'] == current_year]
         current_trade_flow_key = config.TRADE_FLOW_MAP[current_trade_flow_display]
         df_flow_filtered = df_year_filtered[df_year_filtered['Trade_Flow_Type'] == current_trade_flow_key]
-        
+
         if current_continent_display != "World":
             current_continent_code = config.CONTINENT_OPTIONS[current_continent_display]
             if 'Continent_Code' in df_flow_filtered.columns:
@@ -147,12 +178,12 @@ def main():
                 </p>
             </div>
             """, unsafe_allow_html=True)
-            
+
             header_cols = st.columns([0.5, 2, 1.5, 1.5, 1.5, 1])
             headers = ["Rank", "Country", "US Trade", "China Trade", "Total (US+China)", "Proporsi"]
             for col, header in zip(header_cols, headers):
                 col.markdown(f"<p style='color: {config.TEXT_COLOR_PRIMARY}; font-weight: bold; font-size: 0.9em;'>{header}</p>", unsafe_allow_html=True)
-            
+
             st.markdown("<hr style='margin-top: 0.1rem; margin-bottom: 0.5rem; border-color: #4A5568;'>", unsafe_allow_html=True)
 
 
@@ -161,7 +192,7 @@ def main():
                 pie_fig_to_display = pie_figures[i]
 
                 row_cols = st.columns([0.5, 2, 1.5, 1.5, 1.5, 1])
-                
+
                 with row_cols[0]: # Rank
                     st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Rank']}</span>", unsafe_allow_html=True)
                 with row_cols[1]: # Country

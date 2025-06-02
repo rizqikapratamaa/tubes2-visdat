@@ -1,23 +1,12 @@
-# streamlit_app/map_plotter.py
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import config
+from data_loader import format_trade_value
 
-def format_trade_value(value):
-    if pd.isna(value) or value == 0:
-        return "$0"
-    if abs(value) >= 1_000_000: # Miliar
-        return f"${value / 1_000_000:.2f}T"
-    if abs(value) >= 1_000: # Juta
-        return f"${value / 1_000:.2f}B"
-    return f"${value:.2f}M" # Default atau di bawah juta
-
-
-# MODIFIKASI: Tambahkan argumen selected_flow_key
 def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
                           min_year, max_year, current_selected_year,
-                          selected_flow_key, # <-- ARGUMEN BARU
+                          selected_flow_key,
                           selected_continent="World"):
 
     if df_dominance_all_flows.empty or not available_years or geojson_data is None:
@@ -31,8 +20,7 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
     if initial_year_to_display not in available_years:
         initial_year_to_display = max(available_years) if available_years else min_year
 
-    # --- Tambahkan Traces Awal ---
-    for i, flow_key_trace in enumerate(flow_keys_ordered): # Ubah nama variabel agar tidak bentrok
+    for i, flow_key_trace in enumerate(flow_keys_ordered):
         df_flow_specific = df_dominance_all_flows[df_dominance_all_flows['Trade_Flow_Type'] == flow_key_trace]
         df_initial_year_flow = df_flow_specific[df_flow_specific['Year'] == initial_year_to_display]
 
@@ -59,12 +47,11 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
             flow_display_name_trace = [dn for dn, fk in config.TRADE_FLOW_MAP.items() if fk == flow_key_trace][0]
             hover_texts.append(f"<b>{country_display_name}</b><br>Year: {initial_year_to_display}<br>Type: {flow_display_name_trace}<br>{trade_details_text}")
 
-        # MODIFIKASI: Atur visibilitas berdasarkan selected_flow_key
         is_visible = (flow_key_trace == selected_flow_key)
 
         fig.add_trace(
             go.Choropleth(
-                name=flow_key_trace, # Beri nama trace untuk identifikasi jika perlu
+                name=flow_key_trace,
                 geojson=geojson_data,
                 locations=locations,
                 z=z_values,
@@ -78,12 +65,10 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
                 marker_line_color=config.COLOR_BORDER,
                 marker_line_width=0.3,
                 showscale=False,
-                visible=is_visible # <-- VISIBILITAS DIATUR DI SINI
+                visible=is_visible 
             )
         )
 
-    # --- Buat Frames untuk Animasi Tahun ---
-    # Logika frame tetap penting untuk slider tahun
     frames = []
     for year in available_years:
         frame_data_list = []
@@ -112,13 +97,11 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
                 flow_display_name_frame = [dn for dn, fk in config.TRADE_FLOW_MAP.items() if fk == flow_key_trace_frame][0]
                 current_hover_texts.append(f"<b>{country_display_name}</b><br>Year: {year}<br>Type: {flow_display_name_frame}<br>{trade_details_text}")
 
-            # Data untuk frame adalah objek Choropleth hanya dengan z dan hovertext yang berubah
-            # Penting: urutan trace dalam frame harus sama dengan urutan trace awal
             frame_data_list.append(go.Choropleth(z=current_z_values, hovertext=current_hover_texts))
 
         frames.append(go.Frame(
             name=str(year),
-            data=frame_data_list, # List berisi data untuk setiap trace
+            data=frame_data_list,
         ))
     fig.frames = frames
 
@@ -175,39 +158,39 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
             font=dict(color=config.TEXT_COLOR_PRIMARY, size=12),
             steps=slider_steps,
         )],
-        # MODIFIKASI: Hapus updatemenus untuk trade flow type
-        updatemenus=[ # Hanya sisakan updatemenu untuk tombol play/pause
+
+        updatemenus=[
             dict(
                 type="buttons",
                 direction="right",
                 buttons=[
-                    dict(label="❮", method="animate", args=[[None], {"frame": {"duration": 500, "redraw": True}, "mode": "immediate", "transition": {"duration": 0}, "args2": ["prev"]}]),
                     dict(label="▶", method="animate", args=[None, {"frame": {"duration": 800, "redraw": True}, "fromcurrent": True, "transition": {"duration": 400, "easing": "linear"}, "mode": "immediate"}]),
                     dict(label="⏸", method="animate", args=[[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate", "transition": {"duration": 0}}]),
-                    dict(label="❯", method="animate", args=[[None], {"frame": {"duration": 500, "redraw": True}, "mode": "immediate", "transition": {"duration": 0}, "args2": ["next"]}]),
                 ],
-                x=0.5,
+                x=0.095,
                 xanchor="center",
-                y=0.02, # Posisikan di bawah slider
+                y=-0.015,
                 yanchor="bottom",
-                pad={"t": 5, "r": 5, "l": 5, "b":5},
+                pad={"t": 5, "r": 2, "l": 2, "b": 5},
                 showactive=False,
-                bgcolor='rgba(0,0,0,0)',
                 bordercolor='rgba(0,0,0,0)',
                 font=dict(size=20, color=config.TEXT_COLOR_PRIMARY, family='"Helvetica Neue", Helvetica, Arial, sans-serif')
             )
         ],
         height=750,
-        margin={"r":10, "t":15, "l":10, "b":120}, # Sesuaikan margin atas jika perlu
+        margin={"r":10, "t":15, "l":10, "b":120},
         paper_bgcolor=config.PAGE_BG_COLOR,
         plot_bgcolor=config.PAGE_BG_COLOR,
         font=dict(color=config.TEXT_COLOR_PRIMARY, family='"Helvetica Neue", Helvetica, Arial, sans-serif'),
         annotations=[
             dict(
-                x=0.01, y=0.05, # Posisi legenda bisa tetap atau disesuaikan jika terhalang
-                xref='paper', yref='paper',
+                x=0.5,
+                y=0.05,
+                xref='paper',
+                yref='paper',
+                xanchor='center',
                 showarrow=False,
-                align='left',
+                align='center',
                 text=(
                     "<span style='font-size:13px; color:#A0A0A0; font-weight:500;'>Who is the larger trading partner?</span>   "
                     f"<span style='font-size:16px; color:{config.HEX_COLOR_US_DOMINANT};'>■</span> US   "

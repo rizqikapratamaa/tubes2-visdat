@@ -1,16 +1,15 @@
-# streamlit_app/line_chart_plotter.py
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import config
-from map_plotter import format_trade_value  # Impor fungsi format_trade_value
+from map_plotter import format_trade_value
 
 @st.cache_data
 def load_line_chart_data():
     try:
         df = pd.read_csv(config.TRADE_DATA_PATH)
     except FileNotFoundError:
-        st.error(f"File '{config.TRADE_DATA_PATH}' tidak ditemukan untuk line chart.")
+        st.error(f"File '{config.TRADE_DATA_PATH}' not found for line chart.")
         return pd.DataFrame()
 
     df_us_china = df[df['Country'].isin(['United States', 'China'])].copy()
@@ -28,16 +27,11 @@ def load_line_chart_data():
 
     df_aggregated = df_melted.groupby(['Country', 'Trade_Type', 'Year'])['Value'].sum().reset_index()
 
-    # Tambahkan kolom baru untuk nilai yang sudah diformat
     df_aggregated['Formatted_Value'] = df_aggregated['Value'].apply(format_trade_value)
 
     return df_aggregated
 
 def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"):
-    """
-    Membuat line chart tren perdagangan untuk AS dan China.
-    Visibilitas dikontrol oleh selected_view.
-    """
     if df_trend_data.empty:
         return go.Figure()
 
@@ -49,11 +43,9 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"):
         'China': config.COLOR_CHINA_REF
     }
 
-    # Tentukan visibilitas berdasarkan selected_view
     show_exports = (selected_view == "Exports")
     show_imports = (selected_view == "Imports")
 
-    # --- Tambahkan Traces untuk Ekspor ---
     for country in countries:
         df_country_export = df_trend_data[
             (df_trend_data['Country'] == country) &
@@ -66,16 +58,15 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"):
             mode='lines+markers',
             line=dict(color=country_colors[country], width=2.5),
             marker=dict(size=6),
-            customdata=df_country_export['Formatted_Value'],  # Gunakan kolom yang sudah diformat
+            customdata=df_country_export['Formatted_Value'],
             hovertemplate=(
                 f"<b>{country} Exports</b><br>"
                 "Year: %{x}<br>"
-                "Value: %{customdata}<extra></extra>"  # Gunakan customdata untuk nilai yang sudah diformat
+                "Value: %{customdata}<extra></extra>"
             ),
             visible=show_exports
         ))
 
-    # --- Tambahkan Traces untuk Impor ---
     for country in countries:
         df_country_import = df_trend_data[
             (df_trend_data['Country'] == country) &
@@ -88,11 +79,11 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"):
             mode='lines+markers',
             line=dict(color=country_colors[country], width=2.5),
             marker=dict(size=6, symbol='circle'),
-            customdata=df_country_import['Formatted_Value'],  # Gunakan kolom yang sudah diformat
+            customdata=df_country_import['Formatted_Value'],
             hovertemplate=(
                 f"<b>{country} Imports</b><br>"
                 "Year: %{x}<br>"
-                "Value: %{customdata}<extra></extra>"  # Gunakan customdata untuk nilai yang sudah diformat
+                "Value: %{customdata}<extra></extra>"
             ),
             visible=show_imports
         ))
@@ -123,7 +114,7 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"):
             gridcolor='#4A5568',
             zeroline=False,
             tickfont=dict(color=config.TEXT_COLOR_SECONDARY),
-            tickformat="$,.0f"  # Biarkan sumbu Y tetap menggunakan format default
+            tickformat="$,.0f"
         ),
         legend=dict(
             orientation="h",

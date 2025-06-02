@@ -5,11 +5,8 @@ import config
 from map_plotter import format_trade_value
 
 def generate_trade_table_data_and_pies(df_filtered_table):
-    """
-    Menghasilkan DataFrame untuk data tabel dan list figur pie chart.
-    """
     if df_filtered_table.empty:
-        return pd.DataFrame(), [] # Kembalikan DataFrame kosong dan list kosong
+        return pd.DataFrame(), []
 
     table_data_records = []
     pie_chart_figures = []
@@ -30,11 +27,10 @@ def generate_trade_table_data_and_pies(df_filtered_table):
             "Total (US+China)": format_trade_value(total_trade_val)
         })
 
-        # Buat Pie Chart Mini
         labels = []
         values = []
         colors = []
-        pie_fig = None # Inisialisasi pie_fig
+        pie_fig = None
 
         if us_trade_val > 0:
             labels.append('US')
@@ -45,7 +41,7 @@ def generate_trade_table_data_and_pies(df_filtered_table):
             values.append(china_trade_val)
             colors.append(config.COLOR_CHINA_REF)
         
-        if values: # Hanya buat pie chart jika ada data
+        if values:
             pie_fig = go.Figure(data=[go.Pie(
                 labels=labels, 
                 values=values, 
@@ -58,12 +54,12 @@ def generate_trade_table_data_and_pies(df_filtered_table):
             )])
             pie_fig.update_layout(
                 showlegend=False, 
-                width=60, height=60, # Ukuran kecil
+                width=60, height=60,
                 margin=dict(l=0, r=0, t=0, b=0),
                 paper_bgcolor='rgba(0,0,0,0)'
             )
         
-        pie_chart_figures.append(pie_fig) # Tambahkan fig atau None
+        pie_chart_figures.append(pie_fig)
 
     df_display_table = pd.DataFrame(table_data_records)
     return df_display_table, pie_chart_figures

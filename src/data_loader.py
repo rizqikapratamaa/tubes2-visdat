@@ -12,6 +12,15 @@ def image_to_base64(image_path):
     except FileNotFoundError:
         st.error(f"Image file '{image_path}' is not found.")
         return ""
+    
+def format_trade_value(value):
+    if pd.isna(value) or value == 0:
+        return "$0"
+    if abs(value) >= 1_000_000:
+        return f"${value / 1_000_000:.2f}T"
+    if abs(value) >= 1_000:
+        return f"${value / 1_000:.2f}B"
+    return f"${value:.2f}M"
 
 @st.cache_data
 def load_trade_data():
@@ -136,7 +145,7 @@ def load_trade_data():
     
     available_years = sorted(df_processed_dominance['Year'].unique())
     if not available_years:
-        st.warning("Tidak ada data tahun yang valid.")
+        st.warning("There's no valid year data.")
         return pd.DataFrame(), []
         
     return df_processed_dominance, available_years
@@ -148,7 +157,7 @@ def get_geojson_data():
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        st.error(f"Gagal mengambil data GeoJSON: {e}")
+        st.error(f"Failed to fetch GeoJSON data: {e}")
         return None
 
 @st.cache_data

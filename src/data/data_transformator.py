@@ -1,6 +1,6 @@
 import pandas as pd
 
-data = pd.read_csv("data/raw_trade_data.csv")
+data = pd.read_csv("raw_trade_data.csv")
 
 data = data.drop(columns=['DATASET', 'SERIES_CODE', 'OBS_MEASURE'])
 
@@ -24,4 +24,4 @@ data = data.rename(columns={
     'INDICATOR': 'Trade_Type'
 })
 
-data.to_csv("data/cleaned_trade_data.csv", index=False)
+data.to_csv("cleaned_trade_data.csv", index=False)

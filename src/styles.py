@@ -186,6 +186,22 @@ def load_global_css():
             text-decoration: none !important;
             color: inherit !important; 
         }}
+
+        /* Hilangkan margin dan padding default untuk elemen utama */
+        .main > .block-container {{
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        
+        }}
+        /* Target selectbox untuk map filter */
+        div[data-testid="stSelectbox"][key="map_trade_flow_filter"] {{
+            max-width: 200px;
+        }}
+        /* Gaya lain yang sudah ada */
+        body {{
+            background-color: #1A202C;
+            color: #E2E8F0;
+        }}
         
         </style>
         """,

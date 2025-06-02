@@ -1,5 +1,5 @@
 # Page Configuration
-PAGE_TITLE = "Global Trade Dominance - Interactive Hover"
+PAGE_TITLE = "China vs. America: Global Trade Dominance"
 LAYOUT = "wide"
 
 # Color Definitions

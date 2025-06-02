@@ -1,17 +1,66 @@
 import streamlit as st
 import pandas as pd
+from components import layout
 import config
 import styles
 import data_loader
 import map_plotter
-import line_chart_plotter # Pastikan diimpor
+import line_chart_plotter
 import table_plotter
 
 def main():
     st.set_page_config(layout=config.LAYOUT, page_title=config.PAGE_TITLE)
     styles.load_global_css()
 
+    st.markdown(
+        """
+        <div style='
+            padding-bottom: 20px;
+            border-bottom: 2px solid #2A4066;
+            position: relative;
+            overflow: hidden;
+        '>
+            <div style='
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 50px;
+            '></div>
+            <h1 style='
+                text-align: center;
+                color: #FFFFFF;
+                font-size: 48px;
+                font-weight: bold;
+                margin: 0;
+                padding-top: 20px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            '>
+                China versus America on global trade
+            </h1>
+            <p style='
+                text-align: center;
+                color: #E0E7FF;
+                font-size: 18px;
+                margin: 10px 0;
+            '>
+                Dive into the rivalry between the United States and China as they compete for global trade supremacy.
+            </p>
+            <p style='
+                text-align: center;
+                color: #A0BFE0;
+                font-size: 14px;
+                margin: 5px 0;
+            '>
+                This interactive trade map displays a time series capturing changing patterns of global trade with the world’s two largest economies, the United States and China, from 2001 to 2024.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     # --- Session State untuk Map ---
+    # 'active_trade_flow_display_map' sekarang akan digunakan untuk st.selectbox
     if 'active_trade_flow_display_map' not in st.session_state:
         st.session_state.active_trade_flow_display_map = config.DEFAULT_TRADE_FLOW_DISPLAY
 
@@ -23,19 +72,17 @@ def main():
     if 'active_year_map' not in st.session_state:
         st.session_state.active_year_map = max(initial_years_for_map_default) if initial_years_for_map_default else config.YEARS_RANGE[-1]
 
-    # --- Session State untuk Tabel ---
+    # --- Session State lainnya (Tabel, Line Chart) tetap sama ---
     if 'selected_year_table' not in st.session_state:
         st.session_state.selected_year_table = config.DEFAULT_TABLE_YEAR
     if 'selected_continent_table' not in st.session_state:
         st.session_state.selected_continent_table = config.DEFAULT_TABLE_CONTINENT
     if 'selected_trade_flow_table' not in st.session_state:
-        st.session_state.selected_trade_flow_table = config.DEFAULT_TRADE_FLOW_DISPLAY
+        st.session_state.selected_trade_flow_table = config.DEFAULT_TRADE_FLOW_DISPLAY # Ini untuk tabel, bisa beda dari map
     if 'sort_order_table' not in st.session_state:
         st.session_state.sort_order_table = config.DEFAULT_TABLE_SORT_ORDER
-
-    # --- Session State untuk Line Chart (BARU) ---
     if 'selected_view_line_chart' not in st.session_state:
-        st.session_state.selected_view_line_chart = "Exports" # Default view
+        st.session_state.selected_view_line_chart = "Exports"
 
     # --- Muat Data ---
     df_dominance_all, available_years_all = data_loader.load_trade_data()
@@ -47,16 +94,45 @@ def main():
         st.error("Gagal menyiapkan data untuk tabel.")
 
     # --- Judul Utama ---
-    st.markdown("### Global Trade Dominance: US vs China", unsafe_allow_html=True)
+    # st.markdown("### Global Trade Dominance: US vs China", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 style='text-align: center; color: #E2E8F0; padding-top: 50px;'>🌍 Global Trade Dominance Map</h3>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        """
+        <p style='color: #A0AEC0; font-size: 14px; margin-bottom: 10px; text-align: center;'>
+            This choropleth map shows which countries are dominated by the US or China in terms of trade volume 
+            (Exports or Imports) for the selected year. Use the slider to explore changes over time.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # --- Filter untuk Peta (BARU menggunakan st.selectbox) ---
+    # Tempatkan selectbox sebelum peta
+    col_empty, col_map_filter_container, _ = st.columns([0.05, 0.15, 0.80])  # Tambahkan kolom kosong di kiri
+    with col_map_filter_container:
+        map_trade_flow_display_options = list(config.TRADE_FLOW_MAP.keys())
+        selected_trade_flow_display_map_val = st.selectbox(
+            "Trade Type:",
+            options=map_trade_flow_display_options,
+            index=map_trade_flow_display_options.index(st.session_state.active_trade_flow_display_map),
+            key="map_trade_flow_filter"
+        )
+        st.session_state.active_trade_flow_display_map = selected_trade_flow_display_map_val
+
+    # Dapatkan key aktual untuk data dari display name yang dipilih
+    current_selected_flow_key_map = config.TRADE_FLOW_MAP.get(
+        st.session_state.active_trade_flow_display_map, # Ambil dari session state yang diupdate selectbox
+        config.TRADE_FLOW_MAP[config.DEFAULT_TRADE_FLOW_DISPLAY] # Fallback
+    )
+    # st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True) # Sedikit spasi jika perlu
 
     # --- Peta Choropleth ---
-    # (Kode peta Anda tetap sama)
     geojson_data = data_loader.get_geojson_data()
     if not df_dominance_all.empty and geojson_data and available_years_all:
-        initial_active_flow_key_map = config.TRADE_FLOW_MAP.get(
-            st.session_state.active_trade_flow_display_map,
-            config.TRADE_FLOW_MAP[config.DEFAULT_TRADE_FLOW_DISPLAY]
-        )
         current_map_year = st.session_state.active_year_map
         if current_map_year not in available_years_all:
             current_map_year = max(available_years_all) if available_years_all else config.YEARS_RANGE[-1]
@@ -66,8 +142,8 @@ def main():
             df_dominance_all, available_years_all, geojson_data,
             min(available_years_all), max(available_years_all),
             current_selected_year=current_map_year,
-            initial_active_flow_key=initial_active_flow_key_map,
-            selected_continent="World"
+            selected_flow_key=current_selected_flow_key_map, # <-- PASS SELECTED FLOW KEY
+            selected_continent="World" # Atau dari session state jika Anda membuatnya dinamis
         )
         st.plotly_chart(fig_map, use_container_width=True, config=config.PLOTLY_CONFIG)
     else:
@@ -76,15 +152,24 @@ def main():
     st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
     # --- Line Chart Section ---
-    st.markdown("### US vs China: Export & Import Trends", unsafe_allow_html=True)
-
-    # --- Filter untuk Line Chart (BARU) ---
-    col_lc_filter_container, _ = st.columns([0.1, 0.9]) # Kolom pertama lebih sempit
-
+    st.markdown(
+        "<h3 style='text-align: center; color: #E2E8F0; padding-top: 10px;'>📈 US vs China: Export & Import Trends</h3>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        """
+        <p style='color: #A0AEC0; font-size: 14px; margin-bottom: 10px; text-align: center;'>
+            Compare the export and import trends of the US and China over time. 
+            Select 'Exports' or 'Imports' to see how their trade values have evolved.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+    col_empty, col_lc_filter_container, _ = st.columns([0.05, 0.1, 0.85])
     with col_lc_filter_container:
         line_chart_view_options = ["Exports", "Imports"]
         selected_view_lc_val = st.selectbox(
-            "Tampilkan Tren:",
+            "Trade Type:",
             options=line_chart_view_options,
             index=line_chart_view_options.index(st.session_state.selected_view_line_chart),
             key="line_chart_view_filter"
@@ -103,9 +188,20 @@ def main():
 
     st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
-    # --- Table Analysis Section ---
-    # (Kode tabel Anda tetap sama)
-    st.markdown(f"### Top {config.TOP_N_COUNTRIES} Trading Partners Analysis", unsafe_allow_html=True)
+    st.markdown(
+        f"<h3 style='text-align: center; color: #E2E8F0; padding-top: 10px;'>📊 Top {config.TOP_N_COUNTRIES} Trading Partners Analysis</h3>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <p style='color: #A0AEC0; font-size: 14px; margin-bottom: 10px; text-align: center; padding-bottom: 50px;'>
+            This table highlights the top trading partners for the selected trade type, year, and continent, 
+            showing the trade volumes with the US and China, along with their combined impact.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
 
     if df_table_prepared.empty:
         st.warning("Data untuk analisis tabel tidak tersedia.")
@@ -131,14 +227,15 @@ def main():
 
         st.markdown("<div style='margin-bottom: 1.0rem;'></div>", unsafe_allow_html=True)
 
+        # (Sisa kode tabel Anda tetap sama)
         current_year = st.session_state.selected_year_table
         current_continent_display = st.session_state.selected_continent_table
         current_trade_flow_display = st.session_state.selected_trade_flow_table
         current_sort_order = st.session_state.sort_order_table
 
         df_year_filtered = df_table_prepared[df_table_prepared['Year'] == current_year]
-        current_trade_flow_key = config.TRADE_FLOW_MAP[current_trade_flow_display]
-        df_flow_filtered = df_year_filtered[df_year_filtered['Trade_Flow_Type'] == current_trade_flow_key]
+        current_trade_flow_key_table = config.TRADE_FLOW_MAP[current_trade_flow_display] # Key untuk tabel
+        df_flow_filtered = df_year_filtered[df_year_filtered['Trade_Flow_Type'] == current_trade_flow_key_table]
 
         if current_continent_display != "World":
             current_continent_code = config.CONTINENT_OPTIONS[current_continent_display]
@@ -146,10 +243,10 @@ def main():
                  df_continent_filtered = df_flow_filtered[df_flow_filtered['Continent_Code'] == current_continent_code]
             else:
                 st.warning(f"Kolom 'Continent_Code' tidak ditemukan untuk filtering benua.")
-                df_continent_filtered = df_flow_filtered # Lanjutkan tanpa filter benua jika kolom tidak ada
+                df_continent_filtered = df_flow_filtered
         else:
             df_continent_filtered = df_flow_filtered
-            if 'Continent_Code' in df_continent_filtered.columns: # Filter out unknowns for World view
+            if 'Continent_Code' in df_continent_filtered.columns:
                 df_continent_filtered = df_continent_filtered[~df_continent_filtered['Continent_Code'].isin(["Unknown", "Group", ""])]
 
 
@@ -193,17 +290,17 @@ def main():
 
                 row_cols = st.columns([0.5, 2, 1.5, 1.5, 1.5, 1])
 
-                with row_cols[0]: # Rank
+                with row_cols[0]:
                     st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Rank']}</span>", unsafe_allow_html=True)
-                with row_cols[1]: # Country
+                with row_cols[1]:
                     st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Country']}</span>", unsafe_allow_html=True)
-                with row_cols[2]: # US Trade
+                with row_cols[2]:
                     st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['US Trade']}</span>", unsafe_allow_html=True)
-                with row_cols[3]: # China Trade
+                with row_cols[3]:
                     st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['China Trade']}</span>", unsafe_allow_html=True)
-                with row_cols[4]: # Total
+                with row_cols[4]:
                     st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Total (US+China)']}</span>", unsafe_allow_html=True)
-                with row_cols[5]: # Pie Chart
+                with row_cols[5]:
                     if pie_fig_to_display:
                         st.plotly_chart(pie_fig_to_display, use_container_width=True, config={'displayModeBar': False})
                     else:
@@ -212,6 +309,9 @@ def main():
                 if i < len(df_display_table) - 1:
                     st.markdown("<hr style='margin-top: 0.2rem; margin-bottom: 0.2rem; border-style: dashed; border-color: #4A5568;'>", unsafe_allow_html=True)
 
+    st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
+    layout.display_key_findings()
+    layout.display_authors()
 if __name__ == "__main__":
     main()

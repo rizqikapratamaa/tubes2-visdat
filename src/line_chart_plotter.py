@@ -3,13 +3,10 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import config
+from map_plotter import format_trade_value  # Impor fungsi format_trade_value
 
 @st.cache_data
 def load_line_chart_data():
-    """
-    Memuat dan memproses data perdagangan untuk line chart.
-    Fokus pada total ekspor/impor AS dan China.
-    """
     try:
         df = pd.read_csv(config.TRADE_DATA_PATH)
     except FileNotFoundError:
@@ -31,9 +28,12 @@ def load_line_chart_data():
 
     df_aggregated = df_melted.groupby(['Country', 'Trade_Type', 'Year'])['Value'].sum().reset_index()
 
+    # Tambahkan kolom baru untuk nilai yang sudah diformat
+    df_aggregated['Formatted_Value'] = df_aggregated['Value'].apply(format_trade_value)
+
     return df_aggregated
 
-def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"): # TAMBAHKAN selected_view
+def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"):
     """
     Membuat line chart tren perdagangan untuk AS dan China.
     Visibilitas dikontrol oleh selected_view.
@@ -66,12 +66,13 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"): # TAM
             mode='lines+markers',
             line=dict(color=country_colors[country], width=2.5),
             marker=dict(size=6),
+            customdata=df_country_export['Formatted_Value'],  # Gunakan kolom yang sudah diformat
             hovertemplate=(
                 f"<b>{country} Exports</b><br>"
                 "Year: %{x}<br>"
-                "Value: %{y:$,.0f}<extra></extra>"
+                "Value: %{customdata}<extra></extra>"  # Gunakan customdata untuk nilai yang sudah diformat
             ),
-            visible=show_exports # PERUBAHAN: Kontrol visibilitas
+            visible=show_exports
         ))
 
     # --- Tambahkan Traces untuk Impor ---
@@ -87,12 +88,13 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"): # TAM
             mode='lines+markers',
             line=dict(color=country_colors[country], width=2.5),
             marker=dict(size=6, symbol='circle'),
+            customdata=df_country_import['Formatted_Value'],  # Gunakan kolom yang sudah diformat
             hovertemplate=(
                 f"<b>{country} Imports</b><br>"
                 "Year: %{x}<br>"
-                "Value: %{y:$,.0f}<extra></extra>"
+                "Value: %{customdata}<extra></extra>"  # Gunakan customdata untuk nilai yang sudah diformat
             ),
-            visible=show_imports # PERUBAHAN: Kontrol visibilitas
+            visible=show_imports
         ))
 
     fig.update_layout(
@@ -121,7 +123,7 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"): # TAM
             gridcolor='#4A5568',
             zeroline=False,
             tickfont=dict(color=config.TEXT_COLOR_SECONDARY),
-            tickformat="$,.0f"
+            tickformat="$,.0f"  # Biarkan sumbu Y tetap menggunakan format default
         ),
         legend=dict(
             orientation="h",
@@ -135,6 +137,5 @@ def create_trade_trend_line_chart(df_trend_data, selected_view="Exports"): # TAM
         font=dict(color=config.TEXT_COLOR_PRIMARY, family='"Helvetica Neue", Helvetica, Arial, sans-serif'),
         height=500,
         margin=dict(l=90, r=50, t=100, b=80)
-        # HAPUS BAGIAN updatemenus DI SINI
     )
     return fig

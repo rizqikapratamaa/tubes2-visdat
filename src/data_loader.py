@@ -3,6 +3,15 @@ import pandas as pd
 import numpy as np
 import requests
 import config
+import base64
+
+def image_to_base64(image_path):
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    except FileNotFoundError:
+        st.error(f"Image file '{image_path}' is not found.")
+        return ""
 
 @st.cache_data
 def load_trade_data():

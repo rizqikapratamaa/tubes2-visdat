@@ -1,70 +1,186 @@
-# streamlit_app/app.py
 import streamlit as st
+import pandas as pd
 import config 
 import styles
-import data_loader # Untuk peta
-import map_plotter # Untuk peta
-import line_chart_plotter # Impor modul baru kita
+import data_loader
+import map_plotter
+import line_chart_plotter
+import table_plotter
 
 def main():
     st.set_page_config(layout=config.LAYOUT, page_title=config.PAGE_TITLE)
     styles.load_global_css()
 
-    # --- INISIALISASI SESSION STATE UNTUK PETA ---
-    if 'active_trade_flow_display' not in st.session_state:
-        st.session_state.active_trade_flow_display = config.DEFAULT_TRADE_FLOW_DISPLAY
+    if 'active_trade_flow_display_map' not in st.session_state:
+        st.session_state.active_trade_flow_display_map = config.DEFAULT_TRADE_FLOW_DISPLAY
     
-    df_dominance, available_years_init = data_loader.load_trade_data()
-    if df_dominance.empty or not available_years_init:
-        st.error("Tidak dapat memuat data perdagangan awal untuk peta.")
-        # Pertimbangkan apakah akan st.stop() atau hanya menampilkan pesan error peta
+    initial_years_for_map_default = config.YEARS_RANGE 
+    temp_df_dom, temp_avail_years = data_loader.load_trade_data()
+    if temp_avail_years:
+        initial_years_for_map_default = temp_avail_years
     
-    default_active_year = max(available_years_init) if available_years_init else config.YEARS_RANGE[-1]
-    if 'active_year' not in st.session_state:
-        st.session_state.active_year = default_active_year
+    if 'active_year_map' not in st.session_state:
+        st.session_state.active_year_map = max(initial_years_for_map_default) if initial_years_for_map_default else config.YEARS_RANGE[-1]
     
-    # --- DATA UNTUK PETA ---
-    initial_active_flow_key = config.TRADE_FLOW_MAP.get(
-        st.session_state.active_trade_flow_display,
-        config.TRADE_FLOW_MAP[config.DEFAULT_TRADE_FLOW_DISPLAY]
-    )
+    if 'selected_year_table' not in st.session_state:
+        st.session_state.selected_year_table = config.DEFAULT_TABLE_YEAR
+    if 'selected_continent_table' not in st.session_state:
+        st.session_state.selected_continent_table = config.DEFAULT_TABLE_CONTINENT 
+    if 'selected_trade_flow_table' not in st.session_state:
+        st.session_state.selected_trade_flow_table = config.DEFAULT_TRADE_FLOW_DISPLAY
+    if 'sort_order_table' not in st.session_state:
+        st.session_state.sort_order_table = config.DEFAULT_TABLE_SORT_ORDER
+
+    df_dominance_all, available_years_all = data_loader.load_trade_data()
+    if df_dominance_all.empty or not available_years_all:
+        st.error("Tidak dapat memuat data perdagangan utama. Aplikasi tidak dapat berjalan.")
+        st.stop()
+    df_table_prepared = data_loader.prepare_table_data(df_dominance_all)
+    if df_table_prepared.empty and not df_dominance_all.empty:
+        st.error("Gagal menyiapkan data untuk tabel.")
+
+    st.markdown("### Global Trade Dominance: US vs China", unsafe_allow_html=True)
     geojson_data = data_loader.get_geojson_data()
+    if not df_dominance_all.empty and geojson_data and available_years_all:
+        initial_active_flow_key_map = config.TRADE_FLOW_MAP.get(
+            st.session_state.active_trade_flow_display_map,
+            config.TRADE_FLOW_MAP[config.DEFAULT_TRADE_FLOW_DISPLAY]
+        )
+        current_map_year = st.session_state.active_year_map
+        if current_map_year not in available_years_all:
+            current_map_year = max(available_years_all) if available_years_all else config.YEARS_RANGE[-1]
+            st.session_state.active_year_map = current_map_year
 
-    min_year_data_map = min(available_years_init) if available_years_init else config.YEARS_RANGE[0]
-    max_year_data_map = max(available_years_init) if available_years_init else config.YEARS_RANGE[-1]
-
-    if st.session_state.active_year not in available_years_init and available_years_init:
-        st.session_state.active_year = max_year_data_map
-    
-    # --- TAMPILKAN PETA CHOROPLETH ---
-    st.markdown("## Global Trade Dominance: US vs China", unsafe_allow_html=True) # Judul untuk peta
-    if not df_dominance.empty and geojson_data and available_years_init:
         fig_map = map_plotter.create_choropleth_map(
-            df_dominance,
-            available_years_init, 
-            geojson_data,
-            min_year_data_map,
-            max_year_data_map,
-            current_selected_year=st.session_state.active_year,
-            initial_active_flow_key=initial_active_flow_key,
+            df_dominance_all, available_years_all, geojson_data,
+            min(available_years_all), max(available_years_all),
+            current_selected_year=current_map_year,
+            initial_active_flow_key=initial_active_flow_key_map,
             selected_continent="World"
         )
         st.plotly_chart(fig_map, use_container_width=True, config=config.PLOTLY_CONFIG)
     else:
         st.warning("Data untuk peta tidak lengkap, peta tidak dapat ditampilkan.")
 
-    st.markdown("<br><hr><br>", unsafe_allow_html=True) # Pemisah
+    st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
-    # --- DATA DAN TAMPILKAN LINE CHART ---
-    st.markdown("## US vs China: Export & Import Trends", unsafe_allow_html=True) # Judul untuk line chart
-    
+    st.markdown("### US vs China: Export & Import Trends", unsafe_allow_html=True)
     df_line_chart_data = line_chart_plotter.load_line_chart_data()
-    
     if not df_line_chart_data.empty:
         fig_line_chart = line_chart_plotter.create_trade_trend_line_chart(df_line_chart_data)
         st.plotly_chart(fig_line_chart, use_container_width=True, config=config.PLOTLY_CONFIG)
     else:
         st.warning("Data untuk line chart tren perdagangan tidak dapat dimuat.")
+
+    st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
+
+    st.markdown(f"### Top {config.TOP_N_COUNTRIES} Trading Partners Analysis", unsafe_allow_html=True)
+
+    if df_table_prepared.empty:
+        st.warning("Data untuk analisis tabel tidak tersedia.")
+    else:
+        col_filter1, col_filter2, col_filter3, col_filter4 = st.columns(4)
+        with col_filter1:
+            current_table_year_default = st.session_state.selected_year_table
+            if current_table_year_default not in available_years_all:
+                current_table_year_default = config.DEFAULT_TABLE_YEAR if config.DEFAULT_TABLE_YEAR in available_years_all else available_years_all[0]
+            selected_year_table_val = st.selectbox("Tahun:", options=available_years_all, index=available_years_all.index(current_table_year_default), key="table_year_filter")
+            st.session_state.selected_year_table = selected_year_table_val
+        with col_filter2:
+            continent_display_names = list(config.CONTINENT_OPTIONS.keys())
+            selected_continent_display_table = st.selectbox("Benua:", options=continent_display_names, index=continent_display_names.index(st.session_state.selected_continent_table), key="table_continent_filter")
+            st.session_state.selected_continent_table = selected_continent_display_table
+        with col_filter3:
+            trade_flow_display_options_table = list(config.TRADE_FLOW_MAP.keys())
+            selected_trade_flow_display_table = st.selectbox("Tipe Perdagangan:", options=trade_flow_display_options_table, index=trade_flow_display_options_table.index(st.session_state.selected_trade_flow_table), key="table_trade_flow_filter")
+            st.session_state.selected_trade_flow_table = selected_trade_flow_display_table
+        with col_filter4:
+            selected_sort_order_table = st.selectbox("Urutkan (Total Perdagangan):", options=config.SORT_ORDER_OPTIONS, index=config.SORT_ORDER_OPTIONS.index(st.session_state.sort_order_table), key="table_sort_order_filter")
+            st.session_state.sort_order_table = selected_sort_order_table
+        
+        st.markdown("<div style='margin-bottom: 1.0rem;'></div>", unsafe_allow_html=True)
+
+        current_year = st.session_state.selected_year_table
+        current_continent_display = st.session_state.selected_continent_table
+        current_trade_flow_display = st.session_state.selected_trade_flow_table
+        current_sort_order = st.session_state.sort_order_table
+
+        df_year_filtered = df_table_prepared[df_table_prepared['Year'] == current_year]
+        current_trade_flow_key = config.TRADE_FLOW_MAP[current_trade_flow_display]
+        df_flow_filtered = df_year_filtered[df_year_filtered['Trade_Flow_Type'] == current_trade_flow_key]
+        
+        if current_continent_display != "World":
+            current_continent_code = config.CONTINENT_OPTIONS[current_continent_display]
+            if 'Continent_Code' in df_flow_filtered.columns:
+                 df_continent_filtered = df_flow_filtered[df_flow_filtered['Continent_Code'] == current_continent_code]
+            else:
+                st.warning(f"Kolom 'Continent_Code' tidak ditemukan untuk filtering benua.")
+                df_continent_filtered = df_flow_filtered # Lanjutkan tanpa filter benua jika kolom tidak ada
+        else:
+            df_continent_filtered = df_flow_filtered
+            if 'Continent_Code' in df_continent_filtered.columns: # Filter out unknowns for World view
+                df_continent_filtered = df_continent_filtered[~df_continent_filtered['Continent_Code'].isin(["Unknown", "Group", ""])]
+
+
+        if 'Total_US_China_Trade' in df_continent_filtered.columns:
+            df_filtered_non_zero = df_continent_filtered[df_continent_filtered['Total_US_China_Trade'] > 0]
+            df_to_sort = df_filtered_non_zero if not df_filtered_non_zero.empty else df_continent_filtered
+            ascending_order = (current_sort_order == "Ascending")
+            df_sorted = df_to_sort.sort_values(by='Total_US_China_Trade', ascending=ascending_order)
+        else:
+            st.warning("Kolom 'Total_US_China_Trade' tidak ditemukan untuk sorting tabel.")
+            df_sorted = df_continent_filtered
+
+        df_top_n_raw = df_sorted.head(config.TOP_N_COUNTRIES)
+
+        if df_top_n_raw.empty:
+            st.info(f"Tidak ada data untuk ditampilkan untuk {current_trade_flow_display} di tahun {current_year} (Benua: {current_continent_display}).")
+        else:
+            df_display_table, pie_figures = table_plotter.generate_trade_table_data_and_pies(df_top_n_raw)
+
+            continent_title_part_display = f"Benua: {current_continent_display}" if current_continent_display != "World" else "Seluruh Dunia"
+            st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 5px;">
+                <h4 style="color: {config.TEXT_COLOR_PRIMARY}; margin-bottom: 0px;">Top {min(config.TOP_N_COUNTRIES, len(df_display_table))} Trading Partners</h4>
+                <p style="color: {config.TEXT_COLOR_SECONDARY}; font-size: 12px; margin-top:0; margin-bottom: 15px;">
+                    Tipe: {current_trade_flow_display} | Tahun: {current_year} | {continent_title_part_display}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            header_cols = st.columns([0.5, 2, 1.5, 1.5, 1.5, 1])
+            headers = ["Rank", "Country", "US Trade", "China Trade", "Total (US+China)", "Proporsi"]
+            for col, header in zip(header_cols, headers):
+                col.markdown(f"<p style='color: {config.TEXT_COLOR_PRIMARY}; font-weight: bold; font-size: 0.9em;'>{header}</p>", unsafe_allow_html=True)
+            
+            st.markdown("<hr style='margin-top: 0.1rem; margin-bottom: 0.5rem; border-color: #4A5568;'>", unsafe_allow_html=True)
+
+
+            for i in range(len(df_display_table)):
+                row_data = df_display_table.iloc[i]
+                pie_fig_to_display = pie_figures[i]
+
+                row_cols = st.columns([0.5, 2, 1.5, 1.5, 1.5, 1])
+                
+                with row_cols[0]: # Rank
+                    st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Rank']}</span>", unsafe_allow_html=True)
+                with row_cols[1]: # Country
+                    st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Country']}</span>", unsafe_allow_html=True)
+                with row_cols[2]: # US Trade
+                    st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['US Trade']}</span>", unsafe_allow_html=True)
+                with row_cols[3]: # China Trade
+                    st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['China Trade']}</span>", unsafe_allow_html=True)
+                with row_cols[4]: # Total
+                    st.markdown(f"<span style='color: {config.TEXT_COLOR_SECONDARY}; font-size: 0.9em;'>{row_data['Total (US+China)']}</span>", unsafe_allow_html=True)
+                with row_cols[5]: # Pie Chart
+                    if pie_fig_to_display:
+                        st.plotly_chart(pie_fig_to_display, use_container_width=True, config={'displayModeBar': False})
+                    else:
+                        st.markdown(f"<div style='width:60px; height:60px; border-radius:50%; background-color:{config.HEX_COLOR_NO_DATA}; display:flex; align-items:center; justify-content:center; font-size:10px; color:white; margin:auto;'>N/A</div>", unsafe_allow_html=True)
+
+                if i < len(df_display_table) - 1:
+                    st.markdown("<hr style='margin-top: 0.2rem; margin-bottom: 0.2rem; border-style: dashed; border-color: #4A5568;'>", unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()

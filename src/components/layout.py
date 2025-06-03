@@ -86,8 +86,8 @@ def display_key_findings():
     st.markdown("<br><hr style='margin-top: 0.5rem; margin-bottom: 0.5rem;'><br>", unsafe_allow_html=True)
 
 def display_authors():
-    qika_base64 = data_loader.image_to_base64('assets/qika.jpg')
-    yasmin_base64 = data_loader.image_to_base64('assets/yasmin.jpg')
+    qika_base64 = data_loader.image_to_base64('src/assets/qika.jpg')
+    yasmin_base64 = data_loader.image_to_base64('src/assets/yasmin.jpg')
 
     st.markdown(
         f"<h3 style='text-align: center; color: #E2E8F0; padding-top: 10px; margin-bottom: 20px;'>About the Authors</h3>",

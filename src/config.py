@@ -20,7 +20,7 @@ COLOR_BORDER = '#181818'
 OCEAN_COLOR = PAGE_BG_COLOR
 
 # Data Paths
-TRADE_DATA_PATH = 'data/cleaned_trade_data.csv'
+TRADE_DATA_PATH = 'src/data/cleaned_trade_data.csv'
 GEOJSON_URL = 'https://raw.githubusercontent.com/python-visualization/folium/master/examples/data/world-countries.json'
 
 # Map Settings

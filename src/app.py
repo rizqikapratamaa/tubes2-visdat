@@ -85,7 +85,7 @@ def main():
             selected_flow_key=current_selected_flow_key_map,
             selected_continent="World"
         )
-        st.plotly_chart(fig_map, use_container_width=True, config=config.PLOTLY_CONFIG)
+        st.plotly_chart(fig_map, use_container_width=True, config=config.PLOTLY_CONFIG_ENHANCED)
     else:
         st.warning("Data for the map is incomplete, the map cannot be displayed.")
 

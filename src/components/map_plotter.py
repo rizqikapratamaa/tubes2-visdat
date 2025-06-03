@@ -8,6 +8,29 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
                           min_year, max_year, current_selected_year,
                           selected_flow_key,
                           selected_continent="World"):
+    """
+    Creates an enhanced choropleth map with comprehensive zoom functionality.
+    
+    Enhanced Zoom Features:
+    - Mouse wheel zoom (scrollZoom enabled)
+    - Modebar with zoom in/out, pan, and reset buttons
+    - Quick region zoom buttons (World, Asia, Europe, N.America, S.America, Africa)
+    - Preserve zoom state during year/flow updates (uirevision)
+    - Double-click to reset zoom
+    - Box zoom and pan interactions
+    
+    Args:
+        df_dominance_all_flows: Trade dominance data
+        available_years: List of available years
+        geojson_data: Geographic data for countries
+        min_year, max_year: Year range
+        current_selected_year: Currently selected year
+        selected_flow_key: Selected trade flow type
+        selected_continent: Selected continent for view
+    
+    Returns:
+        plotly.graph_objects.Figure: Enhanced interactive map with zoom features
+    """
 
     if df_dominance_all_flows.empty or not available_years or geojson_data is None:
         return go.Figure()
@@ -106,15 +129,20 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
     fig.frames = frames
 
 
+    # Create slider steps with selective labeling to prevent overlap
     slider_steps = []
-    for year_val in available_years:
+    for i, year_val in enumerate(available_years):
+        # Show label for every 3rd year, first year, and last year to get better coverage
+        show_label = (i % 3 == 0) or (i == 0) or (i == len(available_years) - 1)
+        label_text = str(year_val) if show_label else ""
+        
         slider_steps.append(
-            dict(label=str(year_val),
+            dict(label=label_text,
                  method="animate",
                  args=[[str(year_val)],
-                       {"frame": {"duration": 200, "redraw": True},
+                       {"frame": {"duration": 500, "redraw": True},
                         "mode": "immediate",
-                        "transition": {"duration": 100, "easing": "linear"}}])
+                        "transition": {"duration": 300, "easing": "cubic-in-out"}}])
         )
 
     current_geo_settings = dict(
@@ -135,42 +163,56 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
     fig.update_layout(
         dragmode="zoom",
         modebar=dict(
-            add=['zoomInGeo', 'zoomOutGeo', 'resetGeo']
-            # remove=['lasso2d', 'select2d'] # Contoh jika ingin menghapus tombol lain
-            # active=True # Defaultnya True, modebar akan muncul jika ada tombol
+            add=['zoomInGeo', 'zoomOutGeo', 'resetGeo', 'pan', 'autoScale2d'],
+            remove=['lasso2d', 'select2d', 'zoom2d', 'pan2d'],
+            bgcolor=config.PAGE_BG_COLOR,
+            color=config.TEXT_COLOR_PRIMARY,
+            activecolor=config.HEX_COLOR_CHINA_DOMINANT,
+            orientation='v'
         ),
+        # Enable enhanced zoom and pan interactions
         showlegend=True,
-        geo=current_geo_settings,
+        geo=dict(**current_geo_settings, **{
+            # Enhanced zoom settings with smooth transitions
+            'center': dict(lat=20, lon=0),
+            'projection_scale': 1,
+            # Add interaction settings for better zoom experience
+            'uirevision': 'zoom_state',  # Preserve zoom state during updates
+        }),
         sliders=[dict(
             active=available_years.index(initial_year_to_display) if initial_year_to_display in available_years else 0,
             currentvalue={
-                "font": {"size": 28, "color": config.TEXT_COLOR_PRIMARY, "family": '"Helvetica Neue", Helvetica, Arial, sans-serif'},
+                "font": {"size": 24, "color": config.TEXT_COLOR_PRIMARY, "family": '"Helvetica Neue", Helvetica, Arial, sans-serif'},
                 "prefix": "",
                 "visible": True,
                 "xanchor": "left",
             },
             x=0.01,
-            y=0.10, # Disesuaikan agar tidak terlalu bawah
+            y=0.08,
             xanchor="left",
             yanchor="top",
             len=0.98,
             pad={"t": 20, "b": 10, "l": 20, "r":20},
-            activebgcolor=config.TEXT_COLOR_TERTIARY,
+            activebgcolor=config.HEX_COLOR_CHINA_DOMINANT,
             tickcolor=config.TEXT_COLOR_PRIMARY,
-            bgcolor=config.TEXT_COLOR_PRIMARY,
+            bgcolor=config.TEXT_COLOR_TERTIARY,
             bordercolor=config.PAGE_BG_COLOR,
-            borderwidth=0,
-            tickwidth=1,
-            font=dict(color=config.TEXT_COLOR_PRIMARY, size=12),
+            borderwidth=2,
+            tickwidth=2,
+            ticklen=8,
+            font=dict(color=config.TEXT_COLOR_PRIMARY, size=9),
+            # Add transition settings for smoother animation
+            transition=dict(duration=300, easing="cubic-in-out"),
             steps=slider_steps,
         )],
 
+        # Animation controls
         updatemenus=[
             dict(
                 type="buttons",
                 direction="right",
                 buttons=[
-                    dict(label="▶", method="animate", args=[None, {"frame": {"duration": 800, "redraw": True}, "fromcurrent": True, "transition": {"duration": 400, "easing": "linear"}, "mode": "immediate"}]),
+                    dict(label="▶", method="animate", args=[None, {"frame": {"duration": 1000, "redraw": True}, "fromcurrent": True, "transition": {"duration": 500, "easing": "cubic-in-out"}, "mode": "immediate"}]),
                     dict(label="⏸", method="animate", args=[[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate", "transition": {"duration": 0}}]),
                 ],
                 x=0.095,
@@ -184,7 +226,7 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
             )
         ],
         height=750,
-        margin={"r":10, "t":15, "l":10, "b":120},
+        margin={"r":15, "t":25, "l":15, "b":140},
         paper_bgcolor=config.PAGE_BG_COLOR,
         plot_bgcolor=config.PAGE_BG_COLOR,
         font=dict(color=config.TEXT_COLOR_PRIMARY, family='"Helvetica Neue", Helvetica, Arial, sans-serif'),
@@ -207,4 +249,6 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
             )
         ],
     )
+
+    
     return fig

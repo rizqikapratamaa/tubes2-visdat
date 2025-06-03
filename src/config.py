@@ -293,3 +293,24 @@ PLOTLY_CONFIG = {
     'scrollZoom': False,
     'doubleClick': 'reset',
 }
+
+# Enhanced PLOTLY_CONFIG for better zoom functionality
+PLOTLY_CONFIG_ENHANCED = {
+    'displayModeBar': True,
+    'scrollZoom': True,  # Enable mouse wheel zoom
+    'doubleClick': 'reset',  # Double click to reset zoom
+    'showTips': True,
+    'displaylogo': False,
+    'modeBarButtonsToAdd': [
+        'zoomInGeo', 'zoomOutGeo', 'resetGeo', 'pan',
+        'hoverClosestGeo', 'hoverCompareCartesian'
+    ],
+    'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+    'toImageButtonOptions': {
+        'format': 'png',
+        'filename': 'trade_map',
+        'height': 750,
+        'width': 1200,
+        'scale': 1
+    }
+}

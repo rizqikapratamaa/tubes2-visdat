@@ -133,7 +133,13 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
         current_geo_settings['lonaxis_range'] = [bounds['lon_min'], bounds['lon_max']]
 
     fig.update_layout(
-        dragmode=False,
+        dragmode="zoom",
+        modebar=dict(
+            add=['zoomInGeo', 'zoomOutGeo', 'resetGeo']
+            # remove=['lasso2d', 'select2d'] # Contoh jika ingin menghapus tombol lain
+            # active=True # Defaultnya True, modebar akan muncul jika ada tombol
+        ),
+        showlegend=True,
         geo=current_geo_settings,
         sliders=[dict(
             active=available_years.index(initial_year_to_display) if initial_year_to_display in available_years else 0,

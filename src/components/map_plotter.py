@@ -131,18 +131,16 @@ def create_choropleth_map(df_dominance_all_flows, available_years, geojson_data,
 
     # Create slider steps with selective labeling to prevent overlap
     slider_steps = []
-    for i, year_val in enumerate(available_years):
-        # Show label for every 3rd year, first year, and last year to get better coverage
-        show_label = (i % 3 == 0) or (i == 0) or (i == len(available_years) - 1)
-        label_text = str(year_val) if show_label else ""
-        
+    for year_val in available_years:
         slider_steps.append(
-            dict(label=label_text,
-                 method="animate",
-                 args=[[str(year_val)],
-                       {"frame": {"duration": 500, "redraw": True},
-                        "mode": "immediate",
-                        "transition": {"duration": 300, "easing": "cubic-in-out"}}])
+            dict(
+                label=str(year_val),  # Tampilkan label untuk setiap tahun
+                method="animate",
+                args=[[str(year_val)],
+                    {"frame": {"duration": 500, "redraw": True},
+                    "mode": "immediate",
+                    "transition": {"duration": 300, "easing": "cubic-in-out"}}]
+            )
         )
 
     current_geo_settings = dict(
